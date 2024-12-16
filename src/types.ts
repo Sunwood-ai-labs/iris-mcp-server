@@ -1,4 +1,3 @@
-import { SimpleGit } from 'simple-git';
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 
 export interface IrisServerOptions {
@@ -24,7 +23,6 @@ export interface ReleaseNoteInput {
 }
 
 export interface GitContext {
-  git: SimpleGit;
   workingDir: string;
 }
 

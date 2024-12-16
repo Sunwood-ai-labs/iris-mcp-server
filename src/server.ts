@@ -1,7 +1,6 @@
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { ListToolsRequestSchema, CallToolRequestSchema } from '@modelcontextprotocol/sdk/types.js';
-import { simpleGit } from 'simple-git';
 import { IrisServerOptions, TagDiffInput, ReleaseNoteInput, GitContext } from './types.js';
 import { handleGetTagDiff } from './handlers/tag-diff.js';
 import { handleGenerateReleaseNote } from './handlers/release-note.js';
@@ -26,11 +25,6 @@ export class IrisServer {
     );
 
     this.gitContext = {
-      git: simpleGit({
-        baseDir: workingDir,
-        binary: 'git',
-        maxConcurrentProcesses: 1,
-      }),
       workingDir,
     };
     
