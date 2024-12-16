@@ -21,6 +21,12 @@ interface ReleaseNoteInput {
   breaking?: string[];
 }
 
+interface TagDiffInput {
+  startTag: string;
+  endTag: string;
+  outputPath?: string;
+}
+
 class IrisServer {
   private server: Server;
   private git: SimpleGit;
@@ -50,6 +56,28 @@ class IrisServer {
   private setupToolHandlers(): void {
     this.server.setRequestHandler(ListToolsRequestSchema, async () => ({
       tools: [
+        {
+          name: 'get_tag_diff',
+          description: 'タグ間の差分情報をマークダウンファイルで出力します',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              startTag: {
+                type: 'string',
+                description: '開始タグ',
+              },
+              endTag: {
+                type: 'string',
+                description: '終了タグ',
+              },
+              outputPath: {
+                type: 'string',
+                description: '出力先のパス（オプション、デフォルトは.iris/diff-{endTag}-{timestamp}.md）',
+              },
+            },
+            required: ['startTag', 'endTag'],
+          },
+        },
         {
           name: 'generate_release_note',
           description: 'タグ間の差分からリリースノートを生成します',
@@ -96,18 +124,91 @@ class IrisServer {
     }));
 
     this.server.setRequestHandler(CallToolRequestSchema, async (request) => {
-      if (request.params.name === 'generate_release_note') {
-        const input = request.params.arguments as unknown as ReleaseNoteInput;
-        if (!input.startTag || !input.endTag) {
-          throw new McpError(
-            ErrorCode.InvalidParams,
-            'startTagとendTagは必須パラメータです'
-          );
-        }
-        return await this.handleGenerateReleaseNote(input);
+      switch (request.params.name) {
+        case 'get_tag_diff':
+          const diffInput = request.params.arguments as unknown as TagDiffInput;
+          if (!diffInput.startTag || !diffInput.endTag) {
+            throw new McpError(
+              ErrorCode.InvalidParams,
+              'startTagとendTagは必須パラメータです'
+            );
+          }
+          return await this.handleGetTagDiff(diffInput);
+
+        case 'generate_release_note':
+          const releaseInput = request.params.arguments as unknown as ReleaseNoteInput;
+          if (!releaseInput.startTag || !releaseInput.endTag) {
+            throw new McpError(
+              ErrorCode.InvalidParams,
+              'startTagとendTagは必須パラメータです'
+            );
+          }
+          return await this.handleGenerateReleaseNote(releaseInput);
+
+        default:
+          throw new McpError(ErrorCode.MethodNotFound, `Unknown tool: ${request.params.name}`);
       }
-      throw new McpError(ErrorCode.MethodNotFound, `Unknown tool: ${request.params.name}`);
     });
+  }
+
+  private async handleGetTagDiff(input: TagDiffInput) {
+    try {
+      // .irisディレクトリの作成
+      const irisDir = path.join(process.cwd(), '.iris');
+      await fs.ensureDir(irisDir);
+
+      // タグ間の差分を取得
+      const diff = await this.git.diff([input.startTag, input.endTag]);
+      const files = diff.split('diff --git').slice(1);
+
+      // マークダウンコンテンツの生成
+      let content = `# タグ間の差分情報: ${input.startTag} → ${input.endTag}\n\n`;
+      content += `生成日時: ${new Date().toISOString()}\n\n`;
+
+      // 変更されたファイル一覧
+      content += '## 📝 変更されたファイル\n\n';
+      files.forEach(file => {
+        const match = file.match(/a\/(.*) b\//);
+        if (match) {
+          content += `- \`${match[1]}\`\n`;
+        }
+      });
+      content += '\n';
+
+      // 詳細な差分情報
+      content += '## 🔍 詳細な差分情報\n\n';
+      files.forEach(file => {
+        const match = file.match(/a\/(.*) b\//);
+        if (match) {
+          content += `### ${match[1]}\n\n`;
+          content += '```diff\n';
+          content += file.split('\n').slice(3).join('\n'); // ヘッダー行を除外
+          content += '\n```\n\n';
+        }
+      });
+
+      // ファイル名を生成（タグ名とタイムスタンプを使用）
+      const filename = input.outputPath || `diff-${input.endTag}-${Date.now()}.md`;
+      const filePath = path.join(irisDir, filename);
+
+      // 差分情報を保存
+      await fs.writeFile(filePath, content, 'utf-8');
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `差分情報を生成しました: ${filePath}\n\n${content}`,
+          },
+        ],
+      };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : '不明なエラーが発生しました';
+      throw new McpError(
+        ErrorCode.InternalError,
+        `差分情報の生成に失敗しました: ${errorMessage}`
+      );
+    }
   }
 
   private async handleGenerateReleaseNote(input: ReleaseNoteInput) {
