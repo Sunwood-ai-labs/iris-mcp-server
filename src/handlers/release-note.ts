@@ -1,32 +1,33 @@
 import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
-import { simpleGit } from 'simple-git';
 import { ReleaseNoteInput, GitContext } from '../types.js';
 import { validateTags } from '../utils/git.js';
+import { exec } from 'child_process';
+import { promisify } from 'util';
+
+const execAsync = promisify(exec);
 
 export async function handleGenerateReleaseNote(
   context: GitContext,
   input: ReleaseNoteInput
 ): Promise<string> {
-  // 作業ディレクトリが指定された場合、新しいgitインスタンスを作成
-  let gitContext = context;
-  if (input.workingDir) {
-    gitContext = {
-      git: simpleGit({
-        baseDir: input.workingDir,
-        binary: 'git',
-        maxConcurrentProcesses: 1,
-      }),
-      workingDir: input.workingDir,
-    };
-  }
+  const workingDir = input.workingDir || context.workingDir;
+  const gitContext = { ...context, workingDir };
 
   await validateTags(gitContext, input.startTag, input.endTag);
 
   try {
     // タグ間のコミットログを取得
-    const logs = await gitContext.git.log({
-      from: input.startTag,
-      to: input.endTag,
+    const { stdout: logOutput } = await execAsync(
+      `git log --pretty=format:"%h|%s" ${input.startTag}..${input.endTag}`,
+      { cwd: workingDir }
+    );
+
+    const commits = logOutput.split('\n').map(line => {
+      const [hash, ...messageParts] = line.split('|');
+      return {
+        hash,
+        message: messageParts.join('|')
+      };
     });
 
     // リリースノートの生成
@@ -71,8 +72,8 @@ export async function handleGenerateReleaseNote(
 
     // コミットログ
     content += '## 📝 コミットログ\n\n';
-    logs.all.forEach(commit => {
-      content += `- ${commit.message} (${commit.hash.substring(0, 7)})\n`;
+    commits.forEach(({ hash, message }) => {
+      content += `- ${message} (${hash})\n`;
     });
 
     return content;
