@@ -1,40 +1,35 @@
 import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
-import { simpleGit } from 'simple-git';
 import { TagDiffInput, GitContext } from '../types.js';
 import { validateTags } from '../utils/git.js';
+import { exec } from 'child_process';
+import { promisify } from 'util';
+import * as fs from 'fs';
+import * as path from 'path';
+
+const execAsync = promisify(exec);
 
 export async function handleGetTagDiff(
   context: GitContext,
   input: TagDiffInput
 ): Promise<void> {
-  // 作業ディレクトリが指定された場合、新しいgitインスタンスを作成
-  let gitContext = context;
-  if (input.workingDir) {
-    gitContext = {
-      git: simpleGit({
-        baseDir: input.workingDir,
-        binary: 'git',
-        maxConcurrentProcesses: 1,
-      }),
-      workingDir: input.workingDir,
-    };
-  }
+  const workingDir = input.workingDir || context.workingDir;
+  const gitContext = { ...context, workingDir };
 
   await validateTags(gitContext, input.startTag, input.endTag);
 
   try {
     // タグ間の差分を取得
-    const diff = await gitContext.git.diff([input.startTag, input.endTag]);
+    const { stdout: diff } = await execAsync(
+      `git diff ${input.startTag} ${input.endTag}`,
+      { cwd: workingDir }
+    );
     
     // 出力パスの生成
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
     const outputPath = input.outputPath || `.iris/diff-${input.endTag}-${timestamp}.md`;
     
     // ディレクトリの作成
-    const fs = require('fs');
-    const path = require('path');
     const dir = path.dirname(outputPath);
-    
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
     }
