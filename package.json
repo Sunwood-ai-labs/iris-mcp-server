@@ -1,5 +1,5 @@
 {
-  "name": "iris-mcp-server",
+  "name": "@sunwood-ai-labs/iris-mcp-server",
   "version": "0.1.0",
   "description": "リリースノート生成のためのMCPサーバー",
   "private": false,
@@ -37,19 +37,22 @@
     "automation"
   ],
   "author": {
-    "name": "Your Name",
-    "email": "your.email@example.com"
+    "name": "Sunwood AI Labs",
+    "email": "info@sunwood.ai"
   },
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/yourusername/iris-mcp-server.git"
+    "url": "git+https://github.com/Sunwood-ai-labs/iris-mcp-server.git"
   },
   "bugs": {
-    "url": "https://github.com/yourusername/iris-mcp-server/issues"
+    "url": "https://github.com/Sunwood-ai-labs/iris-mcp-server/issues"
   },
-  "homepage": "https://github.com/yourusername/iris-mcp-server#readme",
+  "homepage": "https://github.com/Sunwood-ai-labs/iris-mcp-server#readme",
   "engines": {
     "node": ">=18.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }
