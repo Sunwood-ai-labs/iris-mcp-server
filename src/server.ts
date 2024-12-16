@@ -4,6 +4,10 @@ import { ListToolsRequestSchema, CallToolRequestSchema } from '@modelcontextprot
 import { IrisServerOptions, TagDiffInput, ReleaseNoteInput, GitContext } from './types.js';
 import { handleGetTagDiff } from './handlers/tag-diff.js';
 import { handleGenerateReleaseNote } from './handlers/release-note.js';
+import { exec } from 'child_process';
+import { promisify } from 'util';
+
+const execAsync = promisify(exec);
 
 export class IrisServer {
   private server: Server;
