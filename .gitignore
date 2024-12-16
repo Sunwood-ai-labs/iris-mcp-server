@@ -30,3 +30,4 @@ logs/
 
 # Generated files
 .iris/
+package-lock.json
