@@ -1,0 +1,55 @@
+{
+  "name": "iris-mcp-server",
+  "version": "0.1.0",
+  "description": "リリースノート生成のためのMCPサーバー",
+  "private": false,
+  "type": "module",
+  "bin": {
+    "iris-mcp-server": "./build/index.js"
+  },
+  "files": [
+    "build",
+    "assets"
+  ],
+  "scripts": {
+    "build": "tsc && node -e \"require('fs').chmodSync('build/index.js', '755')\"",
+    "prepare": "npm run build",
+    "watch": "tsc --watch",
+    "inspector": "npx @modelcontextprotocol/inspector build/index.js",
+    "test": "echo \"No tests specified\" && exit 0"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "0.6.0",
+    "@types/fs-extra": "^11.0.4",
+    "fs-extra": "^11.2.0",
+    "simple-git": "^3.27.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.24",
+    "typescript": "^5.3.3"
+  },
+  "keywords": [
+    "mcp",
+    "release-notes",
+    "git",
+    "changelog",
+    "documentation",
+    "automation"
+  ],
+  "author": {
+    "name": "Your Name",
+    "email": "your.email@example.com"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yourusername/iris-mcp-server.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yourusername/iris-mcp-server/issues"
+  },
+  "homepage": "https://github.com/yourusername/iris-mcp-server#readme",
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
