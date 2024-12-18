@@ -12,39 +12,41 @@ export async function validateTags(
 ): Promise<void> {
   try {
     try {
-      // タグのコミットハッシュを取得して存在確認
-      const { stdout: startHash, stderr: startErr } = await execAsync(
-        `git rev-parse --verify ${startTag}^{commit}`,
+      // タグの存在を確認
+      const { stdout: tags } = await execAsync(
+        'git tag -l',
         { cwd: context.workingDir }
       );
 
-      if (!startHash.trim()) {
+      const existingTags = tags.trim().split('\n');
+      
+      if (!existingTags.includes(startTag)) {
         throw new Error(`開始タグ '${startTag}' が見つかりません`);
       }
 
-      const { stdout: endHash, stderr: endErr } = await execAsync(
-        `git rev-parse --verify ${endTag}^{commit}`,
-        { cwd: context.workingDir }
-      );
-
-      if (!endHash.trim()) {
+      if (!existingTags.includes(endTag)) {
         throw new Error(`終了タグ '${endTag}' が見つかりません`);
       }
 
-      // タグ間のコミット数を確認
-      const { stdout: commitCount } = await execAsync(
-        `git rev-list --count ${startTag}..${endTag}`,
+      // タグ間のコミット履歴を確認
+      const { stdout: commits, stderr: logErr } = await execAsync(
+        `git log --oneline ${startTag}..${endTag}`,
         { cwd: context.workingDir }
       );
 
+      if (!commits.trim()) {
+        throw new Error(`タグ間 '${startTag}..${endTag}' にコミットが存在しません`);
+      }
+
+      const commitCount = commits.trim().split('\n').length;
+
       console.log(`デバッグ情報:\n` +
-        `開始タグ ${startTag}: ${startHash.trim()}\n` +
-        `終了タグ ${endTag}: ${endHash.trim()}\n` +
-        `コミット数: ${commitCount.trim()}`
+        `開始タグ: ${startTag}\n` +
+        `終了タグ: ${endTag}\n` +
+        `コミット数: ${commitCount}`
       );
 
-      if (startErr) console.error(`警告 (開始タグ): ${startErr}`);
-      if (endErr) console.error(`警告 (終了タグ): ${endErr}`);
+      if (logErr) console.error(`警告: ${logErr}`);
 
     } catch (cmdError: unknown) {
       throw new McpError(
