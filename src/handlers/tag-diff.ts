@@ -47,10 +47,13 @@ export async function handleGetTagDiff(
 
       // 出力パスの生成
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-      const outputPath = input.outputPath || `.iris/diff-${input.endTag}-${timestamp}.md`;
+      const defaultFileName = `diff-${input.endTag}-${timestamp}.md`;
+      const outputPath = input.outputPath
+        ? path.join(workingDir, input.outputPath)
+        : path.join(workingDir, defaultFileName);
       
       try {
-        // ディレクトリの作成
+        // 出力先ディレクトリの作成（必要な場合）
         const dir = path.dirname(outputPath);
         if (!fs.existsSync(dir)) {
           fs.mkdirSync(dir, { recursive: true });
