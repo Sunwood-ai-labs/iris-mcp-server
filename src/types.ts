@@ -29,3 +29,10 @@ export interface GitContext {
 export interface ServerContext {
   server: Server;
 }
+
+export interface HeaderImageInput {
+  version: string;
+  repoName: string;
+  workingDir: string;
+  outputPath?: string;
+}
