@@ -58,10 +58,10 @@ export class IrisServer {
               },
               workingDir: {
                 type: 'string',
-                description: 'Gitリポジトリの作業ディレクトリ（オプション）',
+                description: 'Gitリポジトリの作業ディレクトリ',
               },
             },
-            required: ['startTag', 'endTag'],
+            required: ['startTag', 'endTag', 'workingDir'],
           },
         },
         {
@@ -104,10 +104,10 @@ export class IrisServer {
               },
               workingDir: {
                 type: 'string',
-                description: 'Gitリポジトリの作業ディレクトリ（オプション）',
+                description: 'Gitリポジトリの作業ディレクトリ',
               },
             },
-            required: ['startTag', 'endTag'],
+            required: ['startTag', 'endTag', 'workingDir'],
           },
         },
       ],
