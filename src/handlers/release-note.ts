@@ -99,15 +99,14 @@ export async function handleGenerateReleaseNote(
 
       return content;
 
-    } catch (cmdError) {
+    } catch (cmdError: unknown) {
       if (cmdError instanceof McpError) {
         throw cmdError;
       }
       throw new McpError(
         ErrorCode.InternalError,
         `Gitコマンド実行中にエラーが発生しました:\n` +
-        `コマンド: ${(cmdError as any).cmd}\n` +
-        `エラー: ${(cmdError as Error).message}\n` +
+        `エラー: ${cmdError instanceof Error ? cmdError.message : '不明なエラー'}\n` +
         `作業ディレクトリ: ${workingDir}`
       );
     }
