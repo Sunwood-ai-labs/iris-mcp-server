@@ -3,13 +3,15 @@ import { ReleaseNoteInput, GitContext } from '../types.js';
 import { validateTags } from '../utils/git.js';
 import { exec } from 'child_process';
 import { promisify } from 'util';
+import * as fs from 'fs';
+import * as path from 'path';
 
 const execAsync = promisify(exec);
 
 export async function handleGenerateReleaseNote(
   context: GitContext,
   input: ReleaseNoteInput
-): Promise<string> {
+): Promise<void> {
   const workingDir = input.workingDir || context.workingDir;
   const gitContext = { ...context, workingDir };
 
@@ -97,7 +99,30 @@ export async function handleGenerateReleaseNote(
         content += `- ${message} (${hash})\n`;
       });
 
-      return content;
+      // 出力パスの生成
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const defaultFileName = `release-note-${input.endTag}-${timestamp}.md`;
+      const outputDir = path.join(workingDir, 'release_note');
+      const outputPath = path.join(outputDir, defaultFileName);
+
+      try {
+        // 出力先ディレクトリの作成
+        if (!fs.existsSync(outputDir)) {
+          fs.mkdirSync(outputDir, { recursive: true });
+        }
+
+        // ファイルに書き出し
+        fs.writeFileSync(outputPath, content);
+        
+        console.log(`リリースノートを ${outputPath} に出力しました。`);
+      } catch (fsError: unknown) {
+        throw new McpError(
+          ErrorCode.InternalError,
+          `ファイル操作中にエラーが発生しました:\n` +
+          `出力パス: ${outputPath}\n` +
+          `エラー: ${fsError instanceof Error ? fsError.message : '不明なエラー'}`
+        );
+      }
 
     } catch (cmdError: unknown) {
       if (cmdError instanceof McpError) {
