@@ -50,7 +50,7 @@ export async function handleGetTagDiff(
       const defaultFileName = `diff-${input.endTag}-${timestamp}.md`;
       const outputPath = input.outputPath
         ? path.join(workingDir, input.outputPath)
-        : path.join(workingDir, defaultFileName);
+        : path.join(workingDir, '.iris', defaultFileName);
       
       try {
         // 出力先ディレクトリの作成（必要な場合）
