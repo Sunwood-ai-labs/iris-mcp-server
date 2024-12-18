@@ -127,7 +127,7 @@ export class IrisServer {
           };
 
         case 'generate_release_note':
-          const content = await handleGenerateReleaseNote(
+          await handleGenerateReleaseNote(
             this.gitContext,
             request.params.arguments as unknown as ReleaseNoteInput
           );
@@ -135,7 +135,7 @@ export class IrisServer {
             content: [
               {
                 type: 'text',
-                text: content,
+                text: 'リリースノートを出力しました。',
               },
             ],
           };
