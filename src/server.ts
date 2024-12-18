@@ -1,9 +1,10 @@
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { ListToolsRequestSchema, CallToolRequestSchema } from '@modelcontextprotocol/sdk/types.js';
-import { IrisServerOptions, TagDiffInput, ReleaseNoteInput, GitContext } from './types.js';
+import { IrisServerOptions, TagDiffInput, ReleaseNoteInput, GitContext, HeaderImageInput } from './types.js';
 import { handleGetTagDiff } from './handlers/tag-diff.js';
 import { handleGenerateReleaseNote } from './handlers/release-note.js';
+import { handleGenerateHeaderImage } from './handlers/header-image.js';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 
@@ -38,6 +39,32 @@ export class IrisServer {
   private setupToolHandlers(): void {
     this.server.setRequestHandler(ListToolsRequestSchema, async () => ({
       tools: [
+        {
+          name: 'generate_header_image',
+          description: 'リリースノートのヘッダー画像のSVGを生成します',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              version: {
+                type: 'string',
+                description: 'バージョン情報',
+              },
+              repoName: {
+                type: 'string',
+                description: 'リポジトリ名',
+              },
+              outputPath: {
+                type: 'string',
+                description: '出力先のパス（オプション、デフォルトは.iris/header-{version}-{timestamp}.svg）',
+              },
+              workingDir: {
+                type: 'string',
+                description: 'Gitリポジトリの作業ディレクトリ',
+              },
+            },
+            required: ['version', 'repoName', 'workingDir'],
+          },
+        },
         {
           name: 'get_tag_diff',
           description: 'タグ間の差分情報をマークダウンファイルで出力します',
@@ -115,6 +142,17 @@ export class IrisServer {
 
     this.server.setRequestHandler(CallToolRequestSchema, async (request) => {
       switch (request.params.name) {
+        case 'generate_header_image':
+          await handleGenerateHeaderImage(request.params.arguments as unknown as HeaderImageInput);
+          return {
+            content: [
+              {
+                type: 'text',
+                text: 'ヘッダー画像を出力しました。',
+              },
+            ],
+          };
+
         case 'get_tag_diff':
           await handleGetTagDiff(this.gitContext, request.params.arguments as unknown as TagDiffInput);
           return {
