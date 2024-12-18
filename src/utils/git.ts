@@ -11,35 +11,59 @@ export async function validateTags(
   endTag: string
 ): Promise<void> {
   try {
-    // git tagコマンドを直接実行
-    const { stdout } = await execAsync('git tag', { cwd: context.workingDir });
-    const existingTags = stdout.split('\n').filter(Boolean);
+    try {
+      // タグのコミットハッシュを取得して存在確認
+      const { stdout: startHash, stderr: startErr } = await execAsync(
+        `git rev-parse --verify ${startTag}^{commit}`,
+        { cwd: context.workingDir }
+      );
 
-    if (!existingTags.includes(startTag)) {
+      if (!startHash.trim()) {
+        throw new Error(`開始タグ '${startTag}' が見つかりません`);
+      }
+
+      const { stdout: endHash, stderr: endErr } = await execAsync(
+        `git rev-parse --verify ${endTag}^{commit}`,
+        { cwd: context.workingDir }
+      );
+
+      if (!endHash.trim()) {
+        throw new Error(`終了タグ '${endTag}' が見つかりません`);
+      }
+
+      // タグ間のコミット数を確認
+      const { stdout: commitCount } = await execAsync(
+        `git rev-list --count ${startTag}..${endTag}`,
+        { cwd: context.workingDir }
+      );
+
+      console.log(`デバッグ情報:\n` +
+        `開始タグ ${startTag}: ${startHash.trim()}\n` +
+        `終了タグ ${endTag}: ${endHash.trim()}\n` +
+        `コミット数: ${commitCount.trim()}`
+      );
+
+      if (startErr) console.error(`警告 (開始タグ): ${startErr}`);
+      if (endErr) console.error(`警告 (終了タグ): ${endErr}`);
+
+    } catch (cmdError: unknown) {
       throw new McpError(
         ErrorCode.InvalidParams,
-        `開始タグ '${startTag}' がリポジトリに存在しません（${context.workingDir}）。\n利用可能なタグ: ${existingTags.join(', ')}`
+        `タグの検証中にエラーが発生しました:\n` +
+        `エラー: ${cmdError instanceof Error ? cmdError.message : '不明なエラー'}\n` +
+        `作業ディレクトリ: ${context.workingDir}`
       );
     }
 
-    if (!existingTags.includes(endTag)) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `終了タグ '${endTag}' がリポジトリに存在しません（${context.workingDir}）。\n利用可能なタグ: ${existingTags.join(', ')}`
-      );
-    }
-
-    // タグの存在確認
-    await execAsync(`git rev-parse ${startTag}`, { cwd: context.workingDir });
-    await execAsync(`git rev-parse ${endTag}`, { cwd: context.workingDir });
-
-  } catch (error) {
+  } catch (error: unknown) {
     if (error instanceof McpError) {
       throw error;
     }
     throw new McpError(
       ErrorCode.InternalError,
-      `タグの検証中にエラーが発生しました（${context.workingDir}）: ${error instanceof Error ? error.message : '不明なエラー'}`
+      `タグの検証中に予期せぬエラーが発生しました:\n` +
+      `エラーメッセージ: ${error instanceof Error ? error.message : '不明なエラー'}\n` +
+      `作業ディレクトリ: ${context.workingDir}`
     );
   }
 }
